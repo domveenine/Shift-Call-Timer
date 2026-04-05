@@ -567,6 +567,35 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
   }
 }
 
+
+.delete-btn{
+  background:transparent;
+  color:rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  padding:3px 6px;
+  font-size:10px;
+  font-weight:700;
+  cursor:pointer;
+  line-height:1;
+}
+.delete-btn:hover{
+  color:#ef4444;
+  border-color:rgba(239,68,68,.4);
+}
+
+
+.header-badge{
+  opacity:.7;
+  padding:6px 8px;
+}
+.header-badge .mini-label{
+  font-size:9px;
+}
+.header-badge .mini-value{
+  font-size:12px;
+}
+
 </style>
 </head>
 <body>
@@ -577,8 +606,8 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
       <p class="subtitle"></p>
     </div>
     <div class="header-badge">
-      <span class="mini-label"></span>
-      <span class="mini-value"></span>
+      <span class="mini-label">SHIFT</span>
+      <span id="shiftTime" class="mini-value">00:00:00</span>
     </div>
   </div>
 
@@ -602,7 +631,7 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
       <div class="card timer-card">
         <div class="label">Current Timer</div>
         <div id="timer" class="time">00:00:00</div>
-        <div id="note" class="note">Ready to begin.</div>
+        <div id="note" class="note">Ready to begin. Press C to start or stop a call.</div>
       </div>
       <div class="quick-stats">
         <div class="stat-tile counter-tile">
@@ -624,7 +653,7 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
     </div>
 
     <div class="bottom-actions">
-      <button id="endShiftBtn" class="aux-button download">End</button>
+      <button id="endShiftBtn" class="aux-button download">End Shift & Export</button>
       <button id="resetBtn" class="aux-button reset">Reset</button>
     </div>
 
@@ -641,10 +670,11 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
           <th>Duration</th>
           <th>Tag</th>
           <th>Notes</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="log">
-        <tr id="emptyRow"><td colspan="7" class="empty">No segments logged yet.</td></tr>
+        <tr id="emptyRow"><td colspan="8" class="empty">No segments logged yet.</td></tr>
       </tbody>
     </table>
   </div>
@@ -659,6 +689,23 @@ let isRAD = false;
 let rows = [];
 let segmentActive = false;
 let segmentStart = null;
+let shiftStartTime = null;
+
+function updateShiftTime(){
+  const el = document.getElementById("shiftTime");
+  if(!el) return;
+
+  if(shiftStartTime === null){
+    el.textContent = "00:00:00";
+    return;
+  }
+
+  const diff = Date.now() - shiftStartTime;
+  el.textContent = fmt(diff);
+}
+
+let segmentResumeMode = null;
+let segmentResumeElapsed = 0;
 
 const toggleBtn = document.getElementById("toggleBtn");
 const radBtn = document.getElementById("radBtn");
@@ -681,7 +728,9 @@ function saveState(){
       isRAD,
       rows,
       segmentActive,
-      segmentStart
+      segmentStart,
+      segmentResumeMode,
+      segmentResumeElapsed
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (err){
@@ -712,15 +761,26 @@ function restoreState(){
     rows = Array.isArray(state.rows) ? state.rows : [];
     segmentActive = !!state.segmentActive;
     segmentStart = typeof state.segmentStart === "number" ? state.segmentStart : null;
+    shiftStartTime = typeof state.shiftStartTime === "number" ? state.shiftStartTime : null;
+    segmentResumeMode = typeof state.segmentResumeMode === "string" ? state.segmentResumeMode : null;
+    segmentResumeElapsed = typeof state.segmentResumeElapsed === "number" ? state.segmentResumeElapsed : 0;
 
     logEl.innerHTML = "";
     if(rows.length === 0){
-      logEl.innerHTML = '<tr id="emptyRow"><td colspan="7" class="empty">No segments logged yet.</td></tr>';
+      logEl.innerHTML = '<tr id="emptyRow"><td colspan="8" class="empty">No segments logged yet.</td></tr>';
     } else {
       [...rows].forEach(record => addRow(record, true));
     }
 
-    if(mode === "call" || mode === "break" || mode === "idle"){
+    if(segmentActive && segmentStart !== null){
+      mode = segmentResumeMode || mode || "ready";
+      startTime = segmentStart;
+      clearInterval(interval);
+      interval = setInterval(tick, 250);
+      tick();
+      setStatus("In Segment", "segment");
+      setNote("Segment timer is running.");
+    } else if(mode === "call" || mode === "break" || mode === "idle"){
       if(startTime !== null){
         clearInterval(interval);
         interval = setInterval(tick, 250);
@@ -729,7 +789,7 @@ function restoreState(){
 
       if(mode === "call"){
         setStatus("On Call", "call");
-        setNote(isRAD ? "This call is marked as RAD." : "Call timer is running.");
+        setNote(isRAD ? "This call is marked as RAD." : "Call timer is running. Press C to stop the call.");
       } else if(mode === "break"){
         setStatus("On Break", "other");
         setNote("Break timer is running.");
@@ -744,7 +804,7 @@ function restoreState(){
       interval = null;
       tick();
       setStatus("Ready", "other");
-      setNote("Ready to begin.");
+      setNote("Ready to begin. Press C to start or stop a call.");
     }
 
     segmentBtn.textContent = segmentActive ? "Segment Stop" : "SEG";
@@ -841,6 +901,7 @@ function updateButtons(){
 }
 
 function tick(){
+  updateShiftTime();
   if(startTime !== null){
     timerEl.textContent = fmt(Date.now() - startTime);
   } else {
@@ -894,7 +955,45 @@ function updateAvgHandleTime(){
 
 
 
+function getModeMeta(currentMode){
+  if(currentMode === "call"){
+    return {
+      statusText: "On Call",
+      statusType: "call",
+      noteText: isRAD ? "This call is marked as RAD." : "Call timer is running."
+    };
+  }
+  if(currentMode === "break"){
+    return {
+      statusText: "On Break",
+      statusType: "other",
+      noteText: "Break timer is running."
+    };
+  }
+  if(currentMode === "idle"){
+    return {
+      statusText: "Idle",
+      statusType: "idle",
+      noteText: "Idle timer is running between calls."
+    };
+  }
+  return {
+    statusText: "Ready",
+    statusType: "other",
+    noteText: "Ready to begin."
+  };
+}
+
+function applyModePresentation(currentMode){
+  const meta = getModeMeta(currentMode);
+  setStatus(meta.statusText, meta.statusType);
+  setNote(meta.noteText);
+}
+
 function beginMode(nextMode){
+  if(shiftStartTime === null){
+    shiftStartTime = Date.now();
+  }
   mode = nextMode;
   startTime = Date.now();
   clearInterval(interval);
@@ -903,18 +1002,9 @@ function beginMode(nextMode){
 
   if(nextMode === "call"){
     isRAD = false;
-    setStatus("On Call", "call");
-    setNote("Call timer is running.");
-  } else if(nextMode === "break"){
-    setStatus("On Break", "other");
-    setNote("Break timer is running.");
-  } else if(nextMode === "idle"){
-    setStatus("Idle", "idle");
-    setNote("Idle timer is running between calls.");
-  } else {
-    setStatus("Ready", "other");
-    setNote("Ready to begin.");
   }
+
+  applyModePresentation(nextMode);
 
   updateButtons();
   saveState();
@@ -954,6 +1044,7 @@ function addRow(record, skipStore){
     <td data-label="Duration">${record.duration}</td>
     <td data-label="Tag">${getTagOptions(record.tag || "GEN")}</td>
     <td class="notes-cell" data-label="Notes"><input class="notes-input" type="text" maxlength="120" placeholder="Optional note" value="${escapeHtml(record.notes || "")}" /></td>
+    <td data-label="Delete"><button class="delete-btn" data-id="${record.id}"></button></td>
   `;
 
   logEl.prepend(tr);
@@ -983,12 +1074,35 @@ function addRow(record, skipStore){
     });
   }
 
+
+  const deleteBtn = tr.querySelector(".delete-btn");
+  if(deleteBtn){
+    deleteBtn.addEventListener("click", (e) => {
+      const id = e.target.dataset.id;
+      const confirmDelete = confirm("Are you sure you want to delete this entry?");
+      if(!confirmDelete) return;
+
+      rows = rows.filter(r => String(r.id) !== String(id));
+      tr.remove();
+
+      if(rows.length === 0){
+        logEl.innerHTML = '<tr id="emptyRow"><td colspan="8" class="empty">No segments logged yet.</td></tr>';
+      }
+
+      updateCallCounter();
+      updateRadCounter();
+      updateAvgHandleTime();
+      saveState();
+    });
+  }
+
   if(!skipStore){
     saveState();
   }
   updateCallCounter();
   updateRadCounter();
   updateAvgHandleTime();
+  updateShiftTime();
 }
 
 function logSegment(startedAt, endedAt, duration, tag){
@@ -1034,7 +1148,7 @@ function endCurrentMode(){
     interval = null;
     tick();
     setStatus("Ready", "other");
-    setNote("Ready to begin.");
+    setNote("Ready to begin. Press C to start or stop a call.");
     isRAD = false;
     updateButtons();
     saveState();
@@ -1055,7 +1169,7 @@ toggleBtn.addEventListener("click", () => {
 radBtn.addEventListener("click", () => {
   if(mode !== "call" || radBtn.disabled) return;
   isRAD = !isRAD;
-  setNote(isRAD ? "This call is marked as RAD." : "Call timer is running.");
+  setNote(isRAD ? "This call is marked as RAD." : "Call timer is running. Press C to stop the call.");
   updateButtons();
   saveState();
 });
@@ -1183,7 +1297,36 @@ function generatePdfReport() {
         th,td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top;word-break:break-word;}
         td:last-child, th:last-child{width:28%;}
         th{background:#f3f4f6;}
-      </style>
+      
+.delete-btn{
+  background:transparent;
+  color:rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  padding:3px 6px;
+  font-size:10px;
+  font-weight:700;
+  cursor:pointer;
+  line-height:1;
+}
+.delete-btn:hover{
+  color:#ef4444;
+  border-color:rgba(239,68,68,.4);
+}
+
+
+.header-badge{
+  opacity:.7;
+  padding:6px 8px;
+}
+.header-badge .mini-label{
+  font-size:9px;
+}
+.header-badge .mini-value{
+  font-size:12px;
+}
+
+</style>
     </head>
     <body>
       <h1>Call Log Report</h1>
@@ -1231,35 +1374,56 @@ endShiftBtn.addEventListener("click", () => {
 
 segmentBtn.addEventListener("click", () => {
   if(segmentActive){
+    const now = Date.now();
+
     if(segmentStart !== null){
-      const now = Date.now();
       const dur = fmt(now - segmentStart);
       logSegment(segmentStart, now, dur, "SEG");
     }
+
     segmentActive = false;
     segmentStart = null;
 
-    // revert status based on mode
-    if(mode === "call"){
-      setStatus("On Call", "call");
-    } else if(mode === "break"){
-      setStatus("On Break", "other");
-    } else if(mode === "idle"){
-      setStatus("Idle", "idle");
+    if(segmentResumeMode && segmentResumeMode !== "ready"){
+      mode = segmentResumeMode;
+      startTime = now - segmentResumeElapsed;
+      clearInterval(interval);
+      interval = setInterval(tick, 250);
+      tick();
     } else {
-      setStatus("Ready", "other");
+      mode = segmentResumeMode || "ready";
+      startTime = null;
+      clearInterval(interval);
+      interval = null;
+      tick();
     }
 
+    segmentResumeMode = null;
+    segmentResumeElapsed = 0;
+    applyModePresentation(mode);
   } else {
     segmentActive = true;
+    segmentResumeMode = mode;
+    segmentResumeElapsed = startTime !== null ? Math.max(0, Date.now() - startTime) : 0;
+    if(shiftStartTime === null){
+      shiftStartTime = Date.now();
+    }
     segmentStart = Date.now();
+    startTime = segmentStart;
+    clearInterval(interval);
+    interval = setInterval(tick, 250);
+    tick();
     setStatus("In Segment", "segment");
+    setNote("Segment timer is running.");
   }
   updateButtons();
   saveState();
 });
 
 resetBtn.addEventListener("click", () => {
+  const confirmReset = confirm("Are you sure you want to reset? This will erase all data.");
+  if(!confirmReset) return;
+
   mode = "ready";
   startTime = null;
   count = 0;
@@ -1267,12 +1431,14 @@ resetBtn.addEventListener("click", () => {
   rows = [];
   segmentActive = false;
   segmentStart = null;
+  shiftStartTime = null;
   clearInterval(interval);
   interval = null;
   timerEl.textContent = "00:00:00";
-  logEl.innerHTML = '<tr id="emptyRow"><td colspan="7" class="empty">No segments logged yet.</td></tr>';
+  updateShiftTime();
+  logEl.innerHTML = '<tr id="emptyRow"><td colspan="8" class="empty">No segments logged yet.</td></tr>';
   setStatus("Ready", "other");
-  setNote("Ready to begin.");
+  setNote("Ready to begin. Press C to start or stop a call.");
   updateButtons();
   updateCallCounter();
   updateRadCounter();
@@ -1282,13 +1448,43 @@ resetBtn.addEventListener("click", () => {
 
 if(!restoreState()){
   setStatus("Ready", "other");
-  setNote("Ready to begin.");
+  setNote("Ready to begin. Press C to start or stop a call.");
   updateButtons();
   tick();
   updateCallCounter();
   updateRadCounter();
   updateAvgHandleTime();
+  updateShiftTime();
 }
+
+
+function isTypingTarget(el){
+  if(!el) return false;
+  const tag = (el.tagName || "").toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+}
+
+document.addEventListener("keydown", (e) => {
+  if(e.repeat) return;
+  if((e.key || "").toLowerCase() !== "c") return;
+  if(isTypingTarget(document.activeElement)) return;
+  if(segmentActive || mode === "break") return;
+
+  if(mode === "call"){
+    e.preventDefault();
+    endCurrentMode();
+    return;
+  }
+
+  if(mode === "ready" || mode === "idle"){
+    e.preventDefault();
+    if(mode === "idle"){
+      endCurrentMode();
+    }
+    beginMode("call");
+  }
+});
+
 
 window.addEventListener("beforeunload", saveState);
 </script>
