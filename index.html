@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#09111f" />
 <title></title>
 <style>
 
@@ -596,6 +597,80 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
   font-size:12px;
 }
 
+
+/* FULLSCREEN MOBILE FIX */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #09111f;
+}
+
+body {
+  padding-top: env(safe-area-inset-top);
+}
+
+.app {
+  min-height: 100vh;
+  border-radius: 0;
+}
+
+
+.editable-cell{
+  cursor:text;
+  border-radius:10px;
+  transition:background .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.editable-cell:hover{
+  background:rgba(255,255,255,.04);
+}
+.editable-cell:focus{
+  outline:none;
+  background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 3px rgba(110,168,254,.16);
+}
+
+
+.active-note-wrap{
+  margin-top:14px;
+}
+.active-note-label{
+  display:block;
+  margin-bottom:6px;
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.10em;
+  font-weight:800;
+}
+.active-note-input{
+  width:100%;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:#0f172a;
+  color:var(--text);
+  padding:12px 14px;
+  font-size:13px;
+  line-height:1.4;
+  outline:none;
+  resize:vertical;
+  min-height:92px;
+}
+.active-note-input::placeholder{
+  color:var(--muted);
+}
+.active-note-input:focus{
+  border-color:rgba(110,168,254,.65);
+  box-shadow:0 0 0 3px rgba(110,168,254,.16);
+}
+@media (max-width:680px){
+  .active-note-input{
+    min-height:110px;
+    font-size:15px;
+    padding:14px 16px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -632,6 +707,10 @@ details:not([open]) > .log-toggle::before{content:"▸ ";}
         <div class="label">Current Timer</div>
         <div id="timer" class="time">00:00:00</div>
         <div id="note" class="note">Ready to begin. Press C to start or stop a call.</div>
+        <div class="active-note-wrap">
+          <label for="activeNoteInput" class="active-note-label">Current Status Notes</label>
+          <textarea id="activeNoteInput" class="active-note-input" rows="3" maxlength="240" placeholder="Add notes for the current call, break, idle time, or segment..."></textarea>
+        </div>
       </div>
       <div class="quick-stats">
         <div class="stat-tile counter-tile">
@@ -690,6 +769,8 @@ let rows = [];
 let segmentActive = false;
 let segmentStart = null;
 let shiftStartTime = null;
+let activeStatusNote = "";
+let segmentActiveNote = "";
 
 function updateShiftTime(){
   const el = document.getElementById("shiftTime");
@@ -717,6 +798,7 @@ const logEl = document.getElementById("log");
 const endShiftBtn = document.getElementById("endShiftBtn");
 const resetBtn = document.getElementById("resetBtn");
 const segmentBtn = document.getElementById("segmentBtn");
+const activeNoteInput = document.getElementById("activeNoteInput");
 const STORAGE_KEY = "shiftCallTimerState_v1";
 
 function saveState(){
@@ -730,7 +812,10 @@ function saveState(){
       segmentActive,
       segmentStart,
       segmentResumeMode,
-      segmentResumeElapsed
+      segmentResumeElapsed,
+      shiftStartTime,
+      activeStatusNote,
+      segmentActiveNote
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (err){
@@ -764,6 +849,8 @@ function restoreState(){
     shiftStartTime = typeof state.shiftStartTime === "number" ? state.shiftStartTime : null;
     segmentResumeMode = typeof state.segmentResumeMode === "string" ? state.segmentResumeMode : null;
     segmentResumeElapsed = typeof state.segmentResumeElapsed === "number" ? state.segmentResumeElapsed : 0;
+    activeStatusNote = typeof state.activeStatusNote === "string" ? state.activeStatusNote : "";
+    segmentActiveNote = typeof state.segmentActiveNote === "string" ? state.segmentActiveNote : "";
 
     logEl.innerHTML = "";
     if(rows.length === 0){
@@ -812,11 +899,39 @@ function restoreState(){
     updateCallCounter();
   updateRadCounter();
   updateAvgHandleTime();
+    refreshActiveNoteInput();
     return true;
   } catch (err){
     console.warn("Unable to restore timer state.", err);
     return false;
   }
+}
+
+
+function getCurrentWorkingNote(){
+  return segmentActive ? segmentActiveNote : activeStatusNote;
+}
+
+function setCurrentWorkingNote(value){
+  if(segmentActive){
+    segmentActiveNote = value;
+  } else {
+    activeStatusNote = value;
+  }
+  if(activeNoteInput && activeNoteInput.value !== value){
+    activeNoteInput.value = value;
+  }
+}
+
+function refreshActiveNoteInput(){
+  if(!activeNoteInput) return;
+  activeNoteInput.value = getCurrentWorkingNote();
+  const activeMode = segmentActive ? "segment" : mode;
+  const isEditable = activeMode !== "ready";
+  activeNoteInput.disabled = !isEditable;
+  activeNoteInput.placeholder = isEditable
+    ? "Add notes for the current call, break, idle time, or segment..."
+    : "Start a timer to add notes for the current status...";
 }
 
 function fmt(ms){
@@ -898,6 +1013,7 @@ function updateButtons(){
   radBtn.textContent = isRAD ? "RAD ✓" : "RAD";
   radBtn.classList.toggle("active", isRAD && mode === "call");
   segmentBtn.textContent = segmentActive ? "Segment Stop" : "SEG";
+  refreshActiveNoteInput();
 }
 
 function tick(){
@@ -1000,6 +1116,7 @@ function beginMode(nextMode){
   interval = setInterval(tick, 250);
   tick();
 
+  activeStatusNote = "";
   if(nextMode === "call"){
     isRAD = false;
   }
@@ -1037,14 +1154,14 @@ function addRow(record, skipStore){
   const tr = document.createElement("tr");
   tr.dataset.id = record.id;
   tr.innerHTML = `
-    <td data-label="#">${record.id}</td>
-    <td data-label="Date">${record.date}</td>
-    <td data-label="Start">${record.start}</td>
-    <td data-label="End">${record.end}</td>
-    <td data-label="Duration">${record.duration}</td>
+    <td class="editable-cell" contenteditable="true" data-field="id" data-label="#">${record.id}</td>
+    <td class="editable-cell" contenteditable="true" data-field="date" data-label="Date">${escapeHtml(record.date)}</td>
+    <td class="editable-cell" contenteditable="true" data-field="start" data-label="Start">${escapeHtml(record.start)}</td>
+    <td class="editable-cell" contenteditable="true" data-field="end" data-label="End">${escapeHtml(record.end)}</td>
+    <td class="editable-cell" contenteditable="true" data-field="duration" data-label="Duration">${escapeHtml(record.duration)}</td>
     <td data-label="Tag">${getTagOptions(record.tag || "GEN")}</td>
-    <td class="notes-cell" data-label="Notes"><input class="notes-input" type="text" maxlength="120" placeholder="Optional note" value="${escapeHtml(record.notes || "")}" /></td>
-    <td data-label="Delete"><button class="delete-btn" data-id="${record.id}"></button></td>
+    <td class="notes-cell editable-cell" contenteditable="true" data-field="notes" data-label="Notes">${escapeHtml(record.notes || "")}</td>
+    <td data-label="Delete"><button class="delete-btn" data-id="${record.id}">Delete</button></td>
   `;
 
   logEl.prepend(tr);
@@ -1064,16 +1181,50 @@ function addRow(record, skipStore){
     });
   }
 
-  const notesInput = tr.querySelector(".notes-input");
-  if(notesInput){
-    notesInput.dataset.id = record.id;
-    notesInput.addEventListener("input", (e) => {
+  tr.querySelectorAll(".editable-cell").forEach((cell) => {
+    cell.dataset.id = record.id;
+
+    cell.addEventListener("focus", () => {
+      const range = document.createRange();
+      range.selectNodeContents(cell);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+    cell.addEventListener("blur", (e) => {
       const row = rows.find(r => String(r.id) === String(e.target.dataset.id));
-      if(row) row.notes = e.target.value;
+      if(!row) return;
+
+      const field = e.target.dataset.field;
+      const value = e.target.textContent.trim();
+
+      if(field === "id"){
+        const newId = parseInt(value, 10);
+        if(!Number.isNaN(newId)){
+          row.id = newId;
+          e.target.textContent = String(newId);
+        } else {
+          e.target.textContent = String(row.id);
+        }
+      } else {
+        row[field] = value;
+        e.target.textContent = value;
+      }
+
+      updateCallCounter();
+      updateRadCounter();
+      updateAvgHandleTime();
       saveState();
     });
-  }
 
+    cell.addEventListener("keydown", (e) => {
+      if(e.key === "Enter"){
+        e.preventDefault();
+        e.target.blur();
+      }
+    });
+  });
 
   const deleteBtn = tr.querySelector(".delete-btn");
   if(deleteBtn){
@@ -1103,9 +1254,10 @@ function addRow(record, skipStore){
   updateRadCounter();
   updateAvgHandleTime();
   updateShiftTime();
+  refreshActiveNoteInput();
 }
 
-function logSegment(startedAt, endedAt, duration, tag){
+function logSegment(startedAt, endedAt, duration, tag, savedNote = ""){
   count += 1;
   addRow({
     id: count,
@@ -1114,7 +1266,7 @@ function logSegment(startedAt, endedAt, duration, tag){
     end: fmtTime(endedAt),
     duration,
     tag,
-    notes: ""
+    notes: savedNote
   });
 }
 
@@ -1124,15 +1276,18 @@ function endCurrentMode(){
   const endedAt = Date.now();
   const startedAt = startTime;
   const dur = fmt(endedAt - startedAt);
+  const savedNote = String(activeStatusNote || "").trim();
 
   if(mode === "call"){
-    logSegment(startedAt, endedAt, dur, isRAD ? "RAD" : "GEN");
+    logSegment(startedAt, endedAt, dur, isRAD ? "RAD" : "GEN", savedNote);
+    activeStatusNote = "";
     beginMode("idle");
     return;
   }
 
   if(mode === "break"){
-    logSegment(startedAt, endedAt, dur, "BRK");
+    logSegment(startedAt, endedAt, dur, "BRK", savedNote);
+    activeStatusNote = "";
     beginMode("idle");
     return;
   }
@@ -1140,10 +1295,11 @@ function endCurrentMode(){
   if(mode === "idle"){
     const durationMs = endedAt - startedAt;
     if(durationMs >= 10000){
-      logSegment(startedAt, endedAt, dur, "IDA");
+      logSegment(startedAt, endedAt, dur, "IDA", savedNote);
     }
     mode = "ready";
     startTime = null;
+    activeStatusNote = "";
     clearInterval(interval);
     interval = null;
     tick();
@@ -1326,6 +1482,39 @@ function generatePdfReport() {
   font-size:12px;
 }
 
+
+/* FULLSCREEN MOBILE FIX */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #09111f;
+}
+
+body {
+  padding-top: env(safe-area-inset-top);
+}
+
+.app {
+  min-height: 100vh;
+  border-radius: 0;
+}
+
+
+.editable-cell{
+  cursor:text;
+  border-radius:10px;
+  transition:background .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.editable-cell:hover{
+  background:rgba(255,255,255,.04);
+}
+.editable-cell:focus{
+  outline:none;
+  background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 3px rgba(110,168,254,.16);
+}
+
 </style>
     </head>
     <body>
@@ -1378,11 +1567,12 @@ segmentBtn.addEventListener("click", () => {
 
     if(segmentStart !== null){
       const dur = fmt(now - segmentStart);
-      logSegment(segmentStart, now, dur, "SEG");
+      logSegment(segmentStart, now, dur, "SEG", String(segmentActiveNote || "").trim());
     }
 
     segmentActive = false;
     segmentStart = null;
+    segmentActiveNote = "";
 
     if(segmentResumeMode && segmentResumeMode !== "ready"){
       mode = segmentResumeMode;
@@ -1405,6 +1595,7 @@ segmentBtn.addEventListener("click", () => {
     segmentActive = true;
     segmentResumeMode = mode;
     segmentResumeElapsed = startTime !== null ? Math.max(0, Date.now() - startTime) : 0;
+    segmentActiveNote = "";
     if(shiftStartTime === null){
       shiftStartTime = Date.now();
     }
@@ -1429,6 +1620,8 @@ resetBtn.addEventListener("click", () => {
   count = 0;
   isRAD = false;
   rows = [];
+  activeStatusNote = "";
+  segmentActiveNote = "";
   segmentActive = false;
   segmentStart = null;
   shiftStartTime = null;
@@ -1455,8 +1648,17 @@ if(!restoreState()){
   updateRadCounter();
   updateAvgHandleTime();
   updateShiftTime();
+  refreshActiveNoteInput();
 }
 
+
+
+if(activeNoteInput){
+  activeNoteInput.addEventListener("input", (e) => {
+    setCurrentWorkingNote(e.target.value);
+    saveState();
+  });
+}
 
 function isTypingTarget(el){
   if(!el) return false;
