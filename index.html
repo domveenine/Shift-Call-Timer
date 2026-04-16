@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#09111f" />
 <title></title>
 <style>
@@ -696,10 +699,271 @@ body {
   }
 }
 
+
+/* Prevent mobile auto-zoom on edit fields */
+@media (max-width:520px){
+  .editable-cell,
+  .notes-input,
+  .tag-select,
+  .active-note-input{
+    font-size:16px !important;
+  }
+}
+
+
+/* Native mobile feel improvements */
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  height:100%;
+  background:#09111f;
+}
+body{
+  min-height:100%;
+  overscroll-behavior:none;
+  -webkit-overflow-scrolling:touch;
+  touch-action:manipulation;
+}
+button,
+select,
+textarea,
+[contenteditable="true"]{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+button{
+  user-select:none;
+  -webkit-user-select:none;
+}
+.app-shell{
+  min-height:100vh;
+  min-height:100dvh;
+}
+
+@supports (height: 100svh){
+  .app-shell{
+    min-height:100svh;
+  }
+}
+
+@media (max-width:680px){
+  body.mobile-app-body{
+    padding-left:max(10px, env(safe-area-inset-left));
+    padding-right:max(10px, env(safe-area-inset-right));
+    padding-top:max(10px, env(safe-area-inset-top));
+    padding-bottom:max(10px, env(safe-area-inset-bottom));
+  }
+
+  .app-shell{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .section{
+    position:relative;
+    overflow:visible;
+  }
+
+  .main-action{
+    position:sticky;
+    top:0;
+    z-index:20;
+    padding-top:2px;
+    background:linear-gradient(180deg, rgba(9,17,31,.98), rgba(9,17,31,.78) 72%, rgba(9,17,31,0));
+    backdrop-filter:blur(10px);
+  }
+
+  .main-button,
+  .aux-button,
+  .delete-btn,
+  .tag-select,
+  .active-note-input{
+    border-radius:18px;
+  }
+
+  .main-button,
+  .aux-button{
+    min-height:52px;
+  }
+
+  .editable-cell{
+    min-height:44px;
+    display:flex;
+    align-items:center;
+  }
+
+  .notes-cell.editable-cell{
+    display:block;
+    min-height:56px;
+  }
+
+  .table-wrap{
+    padding-bottom:8px;
+  }
+}
+
+@media (max-width:520px){
+  body.mobile-app-body{
+    padding-left:max(8px, env(safe-area-inset-left));
+    padding-right:max(8px, env(safe-area-inset-right));
+    padding-top:max(8px, env(safe-area-inset-top));
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
+  }
+
+  .header{
+    position:sticky;
+    top:0;
+    z-index:25;
+    padding-top:2px;
+    background:linear-gradient(180deg, rgba(9,17,31,.98), rgba(9,17,31,.82) 78%, rgba(9,17,31,0));
+    backdrop-filter:blur(12px);
+  }
+
+  .title{
+    font-size:21px;
+  }
+
+  .header-badge{
+    border-radius:14px;
+    padding:8px 10px;
+  }
+
+  .status{
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+  }
+
+  .main-action{
+    display:flex;
+    justify-content:center;
+  }
+
+  .main-button{
+    width:76vw;
+    max-width:265px;
+    height:56vw;
+    max-height:205px;
+    font-size:18px;
+    font-weight:900;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 18px 36px rgba(0,0,0,.32);
+  }
+
+  .controls-grid{
+    position:sticky;
+    top:74px;
+    z-index:18;
+    padding:8px 0 10px;
+    background:linear-gradient(180deg, rgba(9,17,31,.96), rgba(9,17,31,.72) 74%, rgba(9,17,31,0));
+    backdrop-filter:blur(10px);
+  }
+
+  .controls-grid .aux-button,
+  .bottom-actions .aux-button{
+    min-height:50px;
+    font-size:13px;
+    font-weight:900;
+  }
+
+  .dashboard{
+    margin-top:10px;
+  }
+
+  .timer-card{
+    min-height:auto;
+    padding:14px;
+  }
+
+  .label{
+    font-size:10px;
+  }
+
+  .time{
+    font-size:32px;
+    line-height:1;
+    margin-bottom:8px;
+  }
+
+  .note{
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .active-note-wrap{
+    margin-top:12px;
+  }
+
+  .active-note-input{
+    min-height:96px;
+    font-size:16px !important;
+    line-height:1.4;
+    padding:14px;
+  }
+
+  .bottom-actions{
+    position:sticky;
+    bottom:0;
+    z-index:22;
+    padding-top:10px;
+    padding-bottom:max(6px, env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(16,26,45,0), rgba(16,26,45,.96) 30%);
+    backdrop-filter:blur(10px);
+  }
+
+  .log-shell{
+    padding:10px;
+  }
+
+  .log-toggle{
+    min-height:40px;
+    display:flex;
+    align-items:center;
+  }
+
+  tbody{
+    gap:12px;
+  }
+
+  tbody tr{
+    border-radius:18px;
+    padding:10px;
+    box-shadow:0 8px 20px rgba(0,0,0,.14);
+  }
+
+  tbody td{
+    padding:8px 6px;
+  }
+
+  .editable-cell,
+  .notes-input,
+  .tag-select,
+  .active-note-input{
+    font-size:16px !important;
+  }
+
+  .tag-select{
+    min-height:42px;
+    padding:9px 12px;
+  }
+
+  .delete-btn{
+    min-height:38px;
+    min-width:70px;
+    font-size:12px;
+    padding:8px 10px;
+  }
+}
+
 </style>
 </head>
-<body>
-<div class="app">
+<body class="mobile-app-body">
+<div class="app app-shell">
   <div class="header">
     <div class="title-wrap">
       <h1 class="title">Shift Call Timer</h1>
@@ -1483,7 +1747,268 @@ function generatePdfReport() {
         th{
           background:#f3f4f6;
         }
-      </style>
+      
+/* Prevent mobile auto-zoom on edit fields */
+@media (max-width:520px){
+  .editable-cell,
+  .notes-input,
+  .tag-select,
+  .active-note-input{
+    font-size:16px !important;
+  }
+}
+
+
+/* Native mobile feel improvements */
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  height:100%;
+  background:#09111f;
+}
+body{
+  min-height:100%;
+  overscroll-behavior:none;
+  -webkit-overflow-scrolling:touch;
+  touch-action:manipulation;
+}
+button,
+select,
+textarea,
+[contenteditable="true"]{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+button{
+  user-select:none;
+  -webkit-user-select:none;
+}
+.app-shell{
+  min-height:100vh;
+  min-height:100dvh;
+}
+
+@supports (height: 100svh){
+  .app-shell{
+    min-height:100svh;
+  }
+}
+
+@media (max-width:680px){
+  body.mobile-app-body{
+    padding-left:max(10px, env(safe-area-inset-left));
+    padding-right:max(10px, env(safe-area-inset-right));
+    padding-top:max(10px, env(safe-area-inset-top));
+    padding-bottom:max(10px, env(safe-area-inset-bottom));
+  }
+
+  .app-shell{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .section{
+    position:relative;
+    overflow:visible;
+  }
+
+  .main-action{
+    position:sticky;
+    top:0;
+    z-index:20;
+    padding-top:2px;
+    background:linear-gradient(180deg, rgba(9,17,31,.98), rgba(9,17,31,.78) 72%, rgba(9,17,31,0));
+    backdrop-filter:blur(10px);
+  }
+
+  .main-button,
+  .aux-button,
+  .delete-btn,
+  .tag-select,
+  .active-note-input{
+    border-radius:18px;
+  }
+
+  .main-button,
+  .aux-button{
+    min-height:52px;
+  }
+
+  .editable-cell{
+    min-height:44px;
+    display:flex;
+    align-items:center;
+  }
+
+  .notes-cell.editable-cell{
+    display:block;
+    min-height:56px;
+  }
+
+  .table-wrap{
+    padding-bottom:8px;
+  }
+}
+
+@media (max-width:520px){
+  body.mobile-app-body{
+    padding-left:max(8px, env(safe-area-inset-left));
+    padding-right:max(8px, env(safe-area-inset-right));
+    padding-top:max(8px, env(safe-area-inset-top));
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
+  }
+
+  .header{
+    position:sticky;
+    top:0;
+    z-index:25;
+    padding-top:2px;
+    background:linear-gradient(180deg, rgba(9,17,31,.98), rgba(9,17,31,.82) 78%, rgba(9,17,31,0));
+    backdrop-filter:blur(12px);
+  }
+
+  .title{
+    font-size:21px;
+  }
+
+  .header-badge{
+    border-radius:14px;
+    padding:8px 10px;
+  }
+
+  .status{
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+  }
+
+  .main-action{
+    display:flex;
+    justify-content:center;
+  }
+
+  .main-button{
+    width:76vw;
+    max-width:265px;
+    height:56vw;
+    max-height:205px;
+    font-size:18px;
+    font-weight:900;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 18px 36px rgba(0,0,0,.32);
+  }
+
+  .controls-grid{
+    position:sticky;
+    top:74px;
+    z-index:18;
+    padding:8px 0 10px;
+    background:linear-gradient(180deg, rgba(9,17,31,.96), rgba(9,17,31,.72) 74%, rgba(9,17,31,0));
+    backdrop-filter:blur(10px);
+  }
+
+  .controls-grid .aux-button,
+  .bottom-actions .aux-button{
+    min-height:50px;
+    font-size:13px;
+    font-weight:900;
+  }
+
+  .dashboard{
+    margin-top:10px;
+  }
+
+  .timer-card{
+    min-height:auto;
+    padding:14px;
+  }
+
+  .label{
+    font-size:10px;
+  }
+
+  .time{
+    font-size:32px;
+    line-height:1;
+    margin-bottom:8px;
+  }
+
+  .note{
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .active-note-wrap{
+    margin-top:12px;
+  }
+
+  .active-note-input{
+    min-height:96px;
+    font-size:16px !important;
+    line-height:1.4;
+    padding:14px;
+  }
+
+  .bottom-actions{
+    position:sticky;
+    bottom:0;
+    z-index:22;
+    padding-top:10px;
+    padding-bottom:max(6px, env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(16,26,45,0), rgba(16,26,45,.96) 30%);
+    backdrop-filter:blur(10px);
+  }
+
+  .log-shell{
+    padding:10px;
+  }
+
+  .log-toggle{
+    min-height:40px;
+    display:flex;
+    align-items:center;
+  }
+
+  tbody{
+    gap:12px;
+  }
+
+  tbody tr{
+    border-radius:18px;
+    padding:10px;
+    box-shadow:0 8px 20px rgba(0,0,0,.14);
+  }
+
+  tbody td{
+    padding:8px 6px;
+  }
+
+  .editable-cell,
+  .notes-input,
+  .tag-select,
+  .active-note-input{
+    font-size:16px !important;
+  }
+
+  .tag-select{
+    min-height:42px;
+    padding:9px 12px;
+  }
+
+  .delete-btn{
+    min-height:38px;
+    min-width:70px;
+    font-size:12px;
+    padding:8px 10px;
+  }
+}
+
+</style>
     </head>
     <body>
       <h1>Call Log Report</h1>
@@ -1672,6 +2197,52 @@ document.addEventListener("keydown", (e) => {
     }
     beginMode("call");
   }
+});
+
+
+
+let wakeLock = null;
+
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator && document.visibilityState === 'visible'){
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch (err){
+    console.warn('Wake lock unavailable.', err);
+  }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if(document.visibilityState === 'visible'){
+    await requestWakeLock();
+  }
+});
+
+function setAppViewportHeight(){
+  document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+}
+setAppViewportHeight();
+window.addEventListener('resize', setAppViewportHeight);
+window.addEventListener('orientationchange', setAppViewportHeight);
+
+document.addEventListener('focusin', (e) => {
+  const target = e.target;
+  if(!target) return;
+  const isEditable = target.matches('textarea, input, select, [contenteditable="true"]');
+  if(!isEditable) return;
+
+  setTimeout(() => {
+    try{
+      target.scrollIntoView({ block:'center', behavior:'smooth' });
+    } catch(err){
+      target.scrollIntoView();
+    }
+  }, 150);
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await requestWakeLock();
 });
 
 
