@@ -1406,27 +1406,6 @@ function generatePdfReport() {
   const totalRadCalls = rowsInOrder.filter(r => r.tag === "RAD").length;
   const totalCallsIncludingRad = callRows.length;
 
-  const summaryHtml = [
-    '<div class="summary-grid">',
-      '<div class="summary-card">',
-        '<div class="summary-label">Average Call Handle Time</div>',
-        '<div class="summary-value">' + avgCallHandleTime + '</div>',
-      '</div>',
-      '<div class="summary-card">',
-        '<div class="summary-label">Average Idle Time</div>',
-        '<div class="summary-value">' + avgIdleTime + '</div>',
-      '</div>',
-      '<div class="summary-card">',
-        '<div class="summary-label">Total RAD Calls</div>',
-        '<div class="summary-value">' + totalRadCalls + '</div>',
-      '</div>',
-      '<div class="summary-card">',
-        '<div class="summary-label">Total Calls Including RAD</div>',
-        '<div class="summary-value">' + totalCallsIncludingRad + '</div>',
-      '</div>',
-    '</div>'
-  ].join('');
-
   const rowsHtml = rowsInOrder.map(r => `
     <tr>
       <td>${r.id}</td>
@@ -1441,14 +1420,26 @@ function generatePdfReport() {
 
   const reportHtml = `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
       <meta charset="UTF-8" />
-      <title></title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Call Log Report</title>
       <style>
-        body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111;}
-        h1{margin:0 0 6px;font-size:24px;}
-        .note{margin-bottom:16px;color:#444;}
+        body{
+          font-family:Arial,Helvetica,sans-serif;
+          padding:24px;
+          color:#111827;
+          background:#ffffff;
+        }
+        h1{
+          margin:0 0 6px;
+          font-size:24px;
+        }
+        .note{
+          margin-bottom:16px;
+          color:#374151;
+        }
         .summary-grid{
           display:grid;
           grid-template-columns:repeat(2, minmax(0, 1fr));
@@ -1474,104 +1465,50 @@ function generatePdfReport() {
           font-weight:700;
           color:#111827;
         }
-        table{width:100%;border-collapse:collapse;font-size:12px;}
-        th,td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top;word-break:break-word;}
-        td:last-child, th:last-child{width:28%;}
-        th{background:#f3f4f6;}
-      
-.delete-btn{
-  background:transparent;
-  color:rgba(255,255,255,.55);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:8px;
-  padding:3px 6px;
-  font-size:10px;
-  font-weight:700;
-  cursor:pointer;
-  line-height:1;
-}
-.delete-btn:hover{
-  color:#ef4444;
-  border-color:rgba(239,68,68,.4);
-}
-
-
-.header-badge{
-  opacity:.7;
-  padding:6px 8px;
-}
-.header-badge .mini-label{
-  font-size:9px;
-}
-.header-badge .mini-value{
-  font-size:12px;
-}
-
-
-/* FULLSCREEN MOBILE FIX */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #09111f;
-}
-
-body {
-  padding-top: env(safe-area-inset-top);
-}
-
-.app {
-  min-height: 100vh;
-  border-radius: 0;
-}
-
-
-.editable-cell{
-  cursor:text;
-  border-radius:10px;
-  transition:background .15s ease, box-shadow .15s ease, border-color .15s ease;
-}
-.editable-cell:hover{
-  background:rgba(255,255,255,.04);
-}
-.editable-cell:focus{
-  outline:none;
-  background:rgba(255,255,255,.06);
-  box-shadow:0 0 0 3px rgba(110,168,254,.16);
-}
-
-
-@media (max-width:520px){
-  .main-action{
-    display:flex;
-    justify-content:center;
-  }
-
-  .main-button{
-    width:80vw;
-    max-width:280px;
-    height:60vw;
-    max-height:220px;
-
-    border-radius:20px;
-    font-size:18px;
-    font-weight:900;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    box-shadow:0 18px 36px rgba(0,0,0,.32);
-  }
-}
-
-</style>
+        table{
+          width:100%;
+          border-collapse:collapse;
+          font-size:12px;
+        }
+        th,td{
+          border:1px solid #d1d5db;
+          padding:8px;
+          text-align:left;
+          vertical-align:top;
+          word-break:break-word;
+        }
+        td:last-child, th:last-child{
+          width:28%;
+        }
+        th{
+          background:#f3f4f6;
+        }
+      </style>
     </head>
     <body>
       <h1>Call Log Report</h1>
       <div class="note"><strong>Shift Start Date:</strong> ${shiftStartDate}</div>
       <div class="note">All times are in Mountain Time (MT).</div>
-      ${summaryHtml}
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">Average Call Handle Time</div>
+          <div class="summary-value">${avgCallHandleTime}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Average Idle Time</div>
+          <div class="summary-value">${avgIdleTime}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Total RAD Calls</div>
+          <div class="summary-value">${totalRadCalls}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Total Calls Including RAD</div>
+          <div class="summary-value">${totalCallsIncludingRad}</div>
+        </div>
+      </div>
+
       <table>
         <thead>
           <tr>
