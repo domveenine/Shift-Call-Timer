@@ -960,58 +960,6 @@ button{
   }
 }
 
-
-
-/* Tablet/mobile tap fix */
-.header,
-.main-action,
-.controls-grid,
-.bottom-actions,
-.status-wrap,
-.dashboard,
-.log-shell,
-.table-wrap,
-tbody tr,
-button,
-select,
-textarea{
-  position:relative;
-  pointer-events:auto;
-}
-
-@media (max-width: 1024px){
-  .header,
-  .main-action,
-  .controls-grid,
-  .bottom-actions{
-    position:static !important;
-    top:auto !important;
-    bottom:auto !important;
-    z-index:auto !important;
-    backdrop-filter:none !important;
-  }
-
-  .app,
-  .section,
-  .card,
-  .log-shell,
-  .table-wrap{
-    overflow:visible;
-  }
-
-  .main-button,
-  .aux-button,
-  .delete-btn,
-  .tag-select,
-  .active-note-input,
-  .notes-input{
-    position:relative;
-    z-index:2;
-    pointer-events:auto;
-    touch-action:manipulation;
-  }
-}
-
 </style>
 </head>
 <body class="mobile-app-body">
@@ -2060,6 +2008,66 @@ button{
   }
 }
 
+
+
+/* Touch tablet/mobile interaction fix */
+@media (hover:none) and (pointer:coarse), (max-width:1024px){
+  .app{
+    overflow:visible !important;
+  }
+
+  .header,
+  .main-action,
+  .controls-grid,
+  .bottom-actions{
+    position:static !important;
+    top:auto !important;
+    bottom:auto !important;
+    z-index:auto !important;
+    backdrop-filter:none !important;
+  }
+
+  .header::before,
+  .main-action::before,
+  .controls-grid::before,
+  .bottom-actions::before,
+  .section::before,
+  .card::before,
+  .log-shell::before{
+    content:none !important;
+  }
+
+  .main-button,
+  .aux-button,
+  .delete-btn,
+  .tag-select,
+  .active-note-input,
+  #toggleBtn,
+  #radBtn,
+  #breakBtn,
+  #segmentBtn,
+  #endShiftBtn,
+  #resetBtn{
+    position:relative;
+    z-index:5;
+    pointer-events:auto !important;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+
+  .section,
+  .dashboard,
+  .quick-stats,
+  .card,
+  .log-shell,
+  .table-wrap,
+  table,
+  tbody,
+  tr,
+  td{
+    position:relative;
+  }
+}
 </style>
     </head>
     <body>
