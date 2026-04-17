@@ -960,6 +960,58 @@ button{
   }
 }
 
+
+
+/* Tablet/mobile tap fix */
+.header,
+.main-action,
+.controls-grid,
+.bottom-actions,
+.status-wrap,
+.dashboard,
+.log-shell,
+.table-wrap,
+tbody tr,
+button,
+select,
+textarea{
+  position:relative;
+  pointer-events:auto;
+}
+
+@media (max-width: 1024px){
+  .header,
+  .main-action,
+  .controls-grid,
+  .bottom-actions{
+    position:static !important;
+    top:auto !important;
+    bottom:auto !important;
+    z-index:auto !important;
+    backdrop-filter:none !important;
+  }
+
+  .app,
+  .section,
+  .card,
+  .log-shell,
+  .table-wrap{
+    overflow:visible;
+  }
+
+  .main-button,
+  .aux-button,
+  .delete-btn,
+  .tag-select,
+  .active-note-input,
+  .notes-input{
+    position:relative;
+    z-index:2;
+    pointer-events:auto;
+    touch-action:manipulation;
+  }
+}
+
 </style>
 </head>
 <body class="mobile-app-body">
