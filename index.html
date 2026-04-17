@@ -178,6 +178,34 @@ th {
 .tag-IDA { background: #16a34a; color: #052e16; }
 .tag-BRK { background: #fde047; color: #422006; }
 .tag-SEG { background: #7c3aed; }
+
+.log-input, .log-select, .delete-log-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 8px 9px;
+  font-size: 16px;
+  min-height: 40px;
+}
+.log-input.notes { min-width: 180px; }
+.log-input.duration-display { background: #172033; color: #cbd5e1; }
+.log-select { padding-right: 28px; }
+.delete-log-btn {
+  background: #7f1d1d;
+  color: #fff;
+  font-weight: bold;
+  min-width: 84px;
+}
+.delete-log-btn:active { opacity: .85; }
+@media (max-width: 699px) {
+  table { min-width: 900px; }
+}
+
 @media (min-width: 700px) {
   .two-col {
     overflow: hidden;
@@ -249,7 +277,7 @@ th {
 
   <div class="log-wrap">
     <h2 class="log-title">Running Log</h2>
-    <div class="small">Entries are view-only in this version for better iPad compatibility.</div>
+    <div class="small">You can edit Date, Start, End, Tag, and Notes. Duration recalculates automatically when Start or End changes.</div>
     <table>
       <thead>
         <tr>
@@ -260,10 +288,11 @@ th {
           <th>Duration</th>
           <th>Tag</th>
           <th>Notes</th>
+          <th>X</th>
         </tr>
       </thead>
       <tbody id="logBody">
-        <tr id="emptyRow"><td colspan="7" class="empty">No segments logged yet.</td></tr>
+        <tr id="emptyRow"><td colspan="8" class="empty">No segments logged yet.</td></tr>
       </tbody>
     </table>
   </div>
@@ -446,29 +475,111 @@ function updateStats() {
   radCounterEl.innerHTML = String(totalRad);
   avgHandleTimeEl.innerHTML = totalCalls ? fmt((totalSeconds / totalCalls) * 1000) : '00:00:00';
 }
-function tagHtml(tag) {
-  return '<span class="tag tag-' + escapeHtml(tag) + '">' + escapeHtml(tag) + '</span>';
+function parseTimeString(value) {
+  var text = String(value || '').replace(/^\s+|\s+$/g, '');
+  var match = text.match(/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return null;
+  var hour = parseInt(match[1], 10);
+  var minute = parseInt(match[2], 10);
+  var second = parseInt(match[3] || '0', 10);
+  var meridian = match[4] ? match[4].toUpperCase() : '';
+  if (minute > 59 || second > 59) return null;
+  if (meridian) {
+    if (hour < 1 || hour > 12) return null;
+    if (hour === 12) hour = 0;
+    if (meridian === 'PM') hour += 12;
+  } else {
+    if (hour > 23) return null;
+  }
+  return { hour: hour, minute: minute, second: second };
+}
+function durationBetween(startText, endText) {
+  var startObj = parseTimeString(startText);
+  var endObj = parseTimeString(endText);
+  if (!startObj || !endObj) return '';
+  var startSeconds = startObj.hour * 3600 + startObj.minute * 60 + startObj.second;
+  var endSeconds = endObj.hour * 3600 + endObj.minute * 60 + endObj.second;
+  if (endSeconds < startSeconds) endSeconds += 24 * 3600;
+  return formatSeconds(endSeconds - startSeconds);
+}
+function updateCountFromRows() {
+  var maxId = 0;
+  var i, idNum;
+  for (i = 0; i < rows.length; i++) {
+    idNum = parseInt(rows[i].id, 10);
+    if (!isNaN(idNum) && idNum > maxId) maxId = idNum;
+  }
+  count = maxId;
 }
 function renderLog() {
   var html = '';
   var i, row;
   if (!rows.length) {
-    logBody.innerHTML = '<tr id="emptyRow"><td colspan="7" class="empty">No segments logged yet.</td></tr>';
+    logBody.innerHTML = '<tr id="emptyRow"><td colspan="8" class="empty">No segments logged yet.</td></tr>';
     return;
   }
   for (i = 0; i < rows.length; i++) {
     row = rows[i];
-    html += '<tr>' +
+    html += '<tr data-index="' + i + '">' +
       '<td>' + escapeHtml(row.id) + '</td>' +
-      '<td>' + escapeHtml(row.date) + '</td>' +
-      '<td>' + escapeHtml(row.start) + '</td>' +
-      '<td>' + escapeHtml(row.end) + '</td>' +
-      '<td>' + escapeHtml(row.duration) + '</td>' +
-      '<td>' + tagHtml(row.tag) + '</td>' +
-      '<td>' + escapeHtml(row.notes || '') + '</td>' +
+      '<td><input class="log-input" data-index="' + i + '" data-field="date" type="text" value="' + escapeHtml(row.date || '') + '"></td>' +
+      '<td><input class="log-input" data-index="' + i + '" data-field="start" type="text" inputmode="text" value="' + escapeHtml(row.start || '') + '"></td>' +
+      '<td><input class="log-input" data-index="' + i + '" data-field="end" type="text" inputmode="text" value="' + escapeHtml(row.end || '') + '"></td>' +
+      '<td><input class="log-input duration-display" data-index="' + i + '" data-field="duration" type="text" value="' + escapeHtml(row.duration || '') + '" readonly></td>' +
+      '<td><select class="log-select" data-index="' + i + '" data-field="tag">' +
+        '<option value="GEN"' + (row.tag === 'GEN' ? ' selected' : '') + '>GEN</option>' +
+        '<option value="RAD"' + (row.tag === 'RAD' ? ' selected' : '') + '>RAD</option>' +
+        '<option value="IDA"' + (row.tag === 'IDA' ? ' selected' : '') + '>IDA</option>' +
+        '<option value="BRK"' + (row.tag === 'BRK' ? ' selected' : '') + '>BRK</option>' +
+        '<option value="SEG"' + (row.tag === 'SEG' ? ' selected' : '') + '>SEG</option>' +
+      '</select></td>' +
+      '<td><input class="log-input notes" data-index="' + i + '" data-field="notes" type="text" value="' + escapeHtml(row.notes || '') + '"></td>' +
+      '<td><button class="delete-log-btn" data-index="' + i + '" type="button">&times;</button></td>' +
       '</tr>';
   }
   logBody.innerHTML = html;
+  bindLogInputs();
+}
+function recalcRowDuration(index) {
+  var row = rows[index];
+  if (!row) return;
+  var recalculated = durationBetween(row.start, row.end);
+  if (recalculated) row.duration = recalculated;
+}
+function handleLogFieldChange(e) {
+  var target = e.target || e.srcElement;
+  if (!target) return;
+  var index = parseInt(target.getAttribute('data-index'), 10);
+  var field = target.getAttribute('data-field');
+  if (isNaN(index) || !rows[index] || !field) return;
+  rows[index][field] = target.value;
+  if (field === 'start' || field === 'end') recalcRowDuration(index);
+  updateStats();
+  saveState();
+  renderLog();
+}
+function handleDeleteLogRow(e) {
+  var target = e && e.target ? e.target : this;
+  var index = parseInt(target.getAttribute('data-index'), 10);
+  if (isNaN(index)) return;
+  if (!confirm('Delete this log entry?')) return;
+  rows.splice(index, 1);
+  updateCountFromRows();
+  renderLog();
+  updateStats();
+  saveState();
+}
+function bindLogInputs() {
+  var inputs = logBody.querySelectorAll('.log-input, .log-select');
+  var buttons = logBody.querySelectorAll('.delete-log-btn');
+  var i;
+  for (i = 0; i < inputs.length; i++) {
+    inputs[i].onchange = handleLogFieldChange;
+    inputs[i].onblur = handleLogFieldChange;
+  }
+  for (i = 0; i < buttons.length; i++) {
+    attachNodeDirectTap(buttons[i], handleDeleteLogRow);
+  }
 }
 function addRow(record) {
   rows.unshift(record);
@@ -759,8 +870,7 @@ function restoreState() {
     return false;
   }
 }
-function attachDirectTap(id, handler) {
-  var el = document.getElementById(id);
+function attachNodeDirectTap(el, handler) {
   if (!el) return;
   var fired = false;
   function invoke(e) {
@@ -768,11 +878,14 @@ function attachDirectTap(id, handler) {
     if (fired) return false;
     fired = true;
     setTimeout(function(){ fired = false; }, 350);
-    handler();
+    handler.call(el, e);
     return false;
   }
   el.ontouchstart = invoke;
   el.onclick = invoke;
+}
+function attachDirectTap(id, handler) {
+  attachNodeDirectTap(document.getElementById(id), handler);
 }
 activeNoteInput.oninput = function() {
   setCurrentWorkingNote(activeNoteInput.value);
