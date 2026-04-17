@@ -960,6 +960,74 @@ button{
   }
 }
 
+
+
+/* Tablet/mobile tap reliability fix */
+@media (max-width:1024px){
+  .app::before{
+    display:none !important;
+  }
+  .header,
+  .main-action,
+  .controls-grid,
+  .bottom-actions,
+  .status-wrap,
+  .section,
+  .dashboard,
+  .card,
+  .log-shell,
+  .table-wrap,
+  details,
+  summary{
+    position:static !important;
+    top:auto !important;
+    bottom:auto !important;
+    left:auto !important;
+    right:auto !important;
+    z-index:auto !important;
+    transform:none !important;
+    backdrop-filter:none !important;
+  }
+
+  body,
+  .app,
+  .app-shell,
+  .section,
+  .dashboard,
+  .card,
+  .log-shell,
+  .table-wrap{
+    overflow:visible !important;
+  }
+
+  body,
+  .app,
+  .app-shell{
+    touch-action:auto !important;
+  }
+
+  button,
+  select,
+  textarea,
+  summary,
+  .tag-select,
+  .delete-btn,
+  .editable-cell,
+  .active-note-input{
+    pointer-events:auto !important;
+    position:relative !important;
+    z-index:9999 !important;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+
+  .controls-grid,
+  .bottom-actions,
+  .main-action{
+    isolation:isolate;
+  }
+}
+
 </style>
 </head>
 <body class="mobile-app-body">
@@ -1089,6 +1157,34 @@ const resetBtn = document.getElementById("resetBtn");
 const segmentBtn = document.getElementById("segmentBtn");
 const activeNoteInput = document.getElementById("activeNoteInput");
 const STORAGE_KEY = "shiftCallTimerState_v1";
+
+function bindPress(el, handler){
+  if(!el) return;
+  let touched = false;
+  const run = (e) => {
+    if(e){
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    handler();
+  };
+  el.addEventListener('pointerup', (e) => {
+    touched = true;
+    run(e);
+  }, {passive:false});
+  el.addEventListener('touchend', (e) => {
+    touched = true;
+    run(e);
+  }, {passive:false});
+  el.addEventListener('click', (e) => {
+    if(touched){
+      touched = false;
+      return;
+    }
+    run(e);
+  }, {passive:false});
+}
+
 
 function saveState(){
   try{
@@ -1600,7 +1696,7 @@ function endCurrentMode(){
   }
 }
 
-toggleBtn.addEventListener("click", () => {
+bindPress(toggleBtn, () => {
   if(mode === "call"){
     endCurrentMode();
   } else {
@@ -1611,7 +1707,7 @@ toggleBtn.addEventListener("click", () => {
   }
 });
 
-radBtn.addEventListener("click", () => {
+bindPress(radBtn, () => {
   if(mode !== "call" || radBtn.disabled) return;
   isRAD = !isRAD;
   setNote(isRAD ? "This call is marked as RAD." : "Call timer is running. Press C to stop the call.");
@@ -1619,7 +1715,7 @@ radBtn.addEventListener("click", () => {
   saveState();
 });
 
-breakBtn.addEventListener("click", () => {
+bindPress(breakBtn, () => {
   if(mode === "call") return;
 
   if(mode === "break"){
@@ -2008,66 +2104,6 @@ button{
   }
 }
 
-
-
-/* Touch tablet/mobile interaction fix */
-@media (hover:none) and (pointer:coarse), (max-width:1024px){
-  .app{
-    overflow:visible !important;
-  }
-
-  .header,
-  .main-action,
-  .controls-grid,
-  .bottom-actions{
-    position:static !important;
-    top:auto !important;
-    bottom:auto !important;
-    z-index:auto !important;
-    backdrop-filter:none !important;
-  }
-
-  .header::before,
-  .main-action::before,
-  .controls-grid::before,
-  .bottom-actions::before,
-  .section::before,
-  .card::before,
-  .log-shell::before{
-    content:none !important;
-  }
-
-  .main-button,
-  .aux-button,
-  .delete-btn,
-  .tag-select,
-  .active-note-input,
-  #toggleBtn,
-  #radBtn,
-  #breakBtn,
-  #segmentBtn,
-  #endShiftBtn,
-  #resetBtn{
-    position:relative;
-    z-index:5;
-    pointer-events:auto !important;
-    -webkit-appearance:none;
-    appearance:none;
-  }
-
-  .section,
-  .dashboard,
-  .quick-stats,
-  .card,
-  .log-shell,
-  .table-wrap,
-  table,
-  tbody,
-  tr,
-  td{
-    position:relative;
-  }
-}
 </style>
     </head>
     <body>
@@ -2126,14 +2162,14 @@ button{
   win.document.close();
 }
 
-endShiftBtn.addEventListener("click", () => {
+bindPress(endShiftBtn, () => {
   if(mode === "call" || mode === "break" || mode === "idle"){
     endCurrentMode();
   }
   generatePdfReport();
 });
 
-segmentBtn.addEventListener("click", () => {
+bindPress(segmentBtn, () => {
   if(segmentActive){
     const now = Date.now();
 
@@ -2183,7 +2219,7 @@ segmentBtn.addEventListener("click", () => {
   saveState();
 });
 
-resetBtn.addEventListener("click", () => {
+bindPress(resetBtn, () => {
   const confirmReset = confirm("Are you sure you want to reset? This will erase all data.");
   if(!confirmReset) return;
 
